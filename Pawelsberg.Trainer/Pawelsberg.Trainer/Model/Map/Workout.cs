@@ -48,58 +48,111 @@ namespace Pawelsberg.Trainer.Model.Map
             get { return Distance / Duration.TotalHours; }
         } // in km per hour
 
-        public Workout(XmlReader reader)
+        private Workout()
         {
+        }
+
+        public static Workout CreateFromGpx(XmlReader reader)
+        {
+            Workout workout = new Workout();
             reader.ReadStartElement("gpx");
             if (reader.IsStartElement() && reader.Name == "metadata")
                 reader.Skip();
             reader.ReadStartElement("trk");
             reader.ReadStartElement("name");
-            Name = reader.ReadContentAsString();
+            workout.Name = reader.ReadContentAsString();
             reader.ReadEndElement(); // name
             if (reader.IsStartElement() && reader.Name == "cmt")
             {
                 reader.ReadStartElement("cmt");
-                Comment = reader.ReadContentAsString();
+                workout.Comment = reader.ReadContentAsString();
                 reader.ReadEndElement(); // cmt
             }
             if (reader.IsStartElement() && reader.Name == "src")
             {
                 reader.ReadStartElement("src");
-                Source = reader.ReadContentAsString();
+                workout.Source = reader.ReadContentAsString();
                 reader.ReadEndElement(); // src
             }
             if (reader.IsStartElement() && reader.Name == "link")
             {
-                Link = new Uri(reader.GetAttribute("href"));
+                workout.Link = new Uri(reader.GetAttribute("href"));
                 reader.Skip(); // link
             }
             if (reader.IsStartElement() && reader.Name == "type")
             {
                 reader.ReadStartElement("type");
-                Type = reader.ReadContentAsString();
+                workout.Type = reader.ReadContentAsString();
                 reader.ReadEndElement(); // type
             }
 
             reader.ReadStartElement("trkseg");
 
 
-            Points = new List<WorkoutPoint>();
+            workout.Points = new List<WorkoutPoint>();
             while (reader.IsStartElement("trkpt"))
             {
-                WorkoutPoint workoutPoint = new WorkoutPoint(reader);
-                if (Points.Any())
-                    workoutPoint.CalcSpeed = workoutPoint.SpeedCalculated(Points[Points.Count - 1]);
-                Points.Add(workoutPoint);
+                WorkoutPoint workoutPoint = WorkoutPoint.CreateFromGpx(reader);
+                if (workout.Points.Any())
+                    workoutPoint.CalcSpeed = workoutPoint.SpeedCalculated(workout.Points[workout.Points.Count - 1]);
+                workout.Points.Add(workoutPoint);
             }
             reader.ReadEndElement(); // trkseg
             reader.ReadEndElement(); // trk
             reader.ReadEndElement(); // gpx
 
-            KmIntervals = new List<WorkoutInterval>();
-            FastestDistanceIntervals = new List<WorkoutInterval>();
-            LongestDurationIntervals = new List<WorkoutInterval>();
+            workout.KmIntervals = new List<WorkoutInterval>();
+            workout.FastestDistanceIntervals = new List<WorkoutInterval>();
+            workout.LongestDurationIntervals = new List<WorkoutInterval>();
+            return workout;
         }
+
+        public static Workout CreateFromTcx(XmlReader reader)
+        {
+            Workout workout = new Workout();
+            reader.ReadStartElement("TrainingCenterDatabase");
+            reader.ReadStartElement("Activities");
+            reader.ReadStartElement("Activity");
+            reader.ReadStartElement("Id");
+            workout.Name = reader.ReadContentAsString();
+            reader.ReadEndElement(); // Id
+            reader.ReadStartElement("Lap");
+            if (reader.IsStartElement() && reader.Name == "TotalTimeSeconds")
+                reader.Skip(); 
+            if (reader.IsStartElement() && reader.Name == "DistanceMeters")
+                reader.Skip(); 
+            if (reader.IsStartElement() && reader.Name == "Calories")
+                reader.Skip(); 
+            if (reader.IsStartElement() && reader.Name == "Intensity")
+                reader.Skip(); 
+            if (reader.IsStartElement() && reader.Name == "TriggerMethod")
+                reader.Skip(); 
+
+            reader.ReadStartElement("Track");
+
+            workout.Points = new List<WorkoutPoint>();
+            while (reader.IsStartElement("Trackpoint"))
+            {
+                WorkoutPoint workoutPoint = WorkoutPoint.CreateFromTcx(reader);
+                if (workout.Points.Any())
+                    workoutPoint.CalcSpeed = workoutPoint.SpeedCalculated(workout.Points[workout.Points.Count - 1]);
+                workout.Points.Add(workoutPoint);
+            }
+            reader.ReadEndElement(); // Track
+            reader.ReadEndElement(); // Lap
+            if (reader.IsStartElement() && reader.Name == "Creator")
+                reader.Skip();
+
+            reader.ReadEndElement(); // Activity
+            reader.ReadEndElement(); // Activities
+            reader.ReadEndElement(); // TrainingCenterDatabase
+
+            workout.KmIntervals = new List<WorkoutInterval>();
+            workout.FastestDistanceIntervals = new List<WorkoutInterval>();
+            workout.LongestDurationIntervals = new List<WorkoutInterval>();
+            return workout;
+        }
+
         public void RecalcPointsDistances()
         {
             double distance = 0d;

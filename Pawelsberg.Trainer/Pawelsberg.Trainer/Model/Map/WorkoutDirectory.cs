@@ -22,7 +22,16 @@ namespace Pawelsberg.Trainer.Model.Map
             {
                 XmlReader reader = XmlReader.Create(gpxFileName);
 
-                Workout workout = new Workout(reader);
+                Workout workout = Workout.CreateFromGpx(reader);
+                reader.Close();
+                Workouts.Add(workout);
+            }
+
+            foreach (string tcxFileName in Directory.EnumerateFiles(Folder, "*.tcx"))
+            {
+                XmlReader reader = XmlReader.Create(tcxFileName);
+
+                Workout workout = Workout.CreateFromTcx(reader);
                 reader.Close();
                 Workouts.Add(workout);
             }

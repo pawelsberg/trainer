@@ -23,41 +23,85 @@ namespace Pawelsberg.Trainer.Model
         public double CalcSpeed { get; set; } // in meters per secound
         public bool UseCalcSpeed { get; set; }
         public double Distance { get; set; } // in km
-        public WorkoutPoint(XmlReader reader)
+        private WorkoutPoint()
         {
-            Lat = double.Parse(reader.GetAttribute("lat"), CultureInfo.GetCultureInfo("en-GB"));
-            Long = double.Parse(reader.GetAttribute("lon"), CultureInfo.GetCultureInfo("en-GB"));
+
+        }
+
+        public static WorkoutPoint CreateFromGpx(XmlReader reader)
+        {
+            WorkoutPoint workoutPoint = new WorkoutPoint();
+            workoutPoint.Lat = double.Parse(reader.GetAttribute("lat"), CultureInfo.GetCultureInfo("en-GB"));
+            workoutPoint.Long = double.Parse(reader.GetAttribute("lon"), CultureInfo.GetCultureInfo("en-GB"));
             reader.ReadStartElement("trkpt");
             reader.ReadStartElement("ele");
-            Ele = double.Parse(reader.ReadContentAsString(), CultureInfo.GetCultureInfo("en-GB"));
+            workoutPoint.Ele = double.Parse(reader.ReadContentAsString(), CultureInfo.GetCultureInfo("en-GB"));
             reader.ReadEndElement(); // ele
 
             reader.ReadStartElement("time");
-            Time = DateTime.Parse(reader.ReadContentAsString(), CultureInfo.GetCultureInfo("en-GB"));
+            workoutPoint.Time = DateTime.Parse(reader.ReadContentAsString(), CultureInfo.GetCultureInfo("en-GB"));
             reader.ReadEndElement(); // time
 
 
             if (reader.IsStartElement() && reader.Name == "desc")
             {
                 reader.ReadStartElement("desc");
-                Desc = reader.ReadContentAsString();
+                workoutPoint.Desc = reader.ReadContentAsString();
                 reader.ReadEndElement(); // desc
             }
 
             if (reader.IsStartElement() && reader.Name == "speed")
             {
                 reader.ReadStartElement("speed");
-                GpsSpeed = double.Parse(reader.ReadContentAsString(), CultureInfo.GetCultureInfo("en-GB"));
+                workoutPoint.GpsSpeed = double.Parse(reader.ReadContentAsString(), CultureInfo.GetCultureInfo("en-GB"));
                 reader.ReadEndElement(); // speed
             }
             else
-                UseCalcSpeed = true;
+                workoutPoint.UseCalcSpeed = true;
 
             if (reader.IsStartElement() && reader.Name == "extensions")
                 reader.Skip();
             reader.ReadEndElement(); // trkpt
 
+            return workoutPoint;
         }
+
+        public static WorkoutPoint CreateFromTcx(XmlReader reader)
+        {
+            WorkoutPoint workoutPoint = new WorkoutPoint();
+
+            reader.ReadStartElement("Trackpoint");
+
+            reader.ReadStartElement("Time");
+            workoutPoint.Time = DateTime.Parse(reader.ReadContentAsString(), CultureInfo.GetCultureInfo("en-GB"));
+            reader.ReadEndElement(); // Time
+
+            reader.ReadStartElement("Position");
+            reader.ReadStartElement("LatitudeDegrees");
+            workoutPoint.Lat = double.Parse(reader.ReadContentAsString(), CultureInfo.GetCultureInfo("en-GB"));
+            reader.ReadEndElement(); // LatitudeDegrees
+            reader.ReadStartElement("LongitudeDegrees");
+            workoutPoint.Long = double.Parse(reader.ReadContentAsString(), CultureInfo.GetCultureInfo("en-GB"));
+            reader.ReadEndElement(); // LongitudeDegrees
+            reader.ReadEndElement(); // Position
+
+            reader.ReadStartElement("AltitudeMeters");
+            workoutPoint.Ele = double.Parse(reader.ReadContentAsString(), CultureInfo.GetCultureInfo("en-GB"));
+            reader.ReadEndElement(); // AltitudeMeters
+
+            workoutPoint.UseCalcSpeed = true;
+
+            if (reader.IsStartElement() && reader.Name == "DistanceMeters")
+                reader.Skip();
+            if (reader.IsStartElement() && reader.Name == "HeartRateBpm")
+                reader.Skip();
+
+            reader.ReadEndElement(); // Trackpoint
+
+            return workoutPoint;
+        }
+
+
         public WorkoutPoint(double lat, double lon, double ele, DateTime time)
         {
             Lat = lat;
@@ -65,6 +109,7 @@ namespace Pawelsberg.Trainer.Model
             Ele = ele;
             Time = time;
         }
+
         public double DistanceTo(WorkoutPoint otherPoint)
         {
             // http://www.movable-type.co.uk/scripts/latlong.html

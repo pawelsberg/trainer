@@ -39,10 +39,6 @@ namespace Pawelsberg.Trainer
             _workoutDirectory = new WorkoutDirectory(workoutDirectory);
             Text = $"Trainer ({_workoutDirectory.Folder})";
             _workoutDirectory.Load();
-            //XmlReader reader = XmlReader.Create(@"C:\Users\Pablon\Documents\2013-05-18_rolki3.gpx");
-            //XmlReader reader = XmlReader.Create(@"C:\Users\Pablon\Documents\moje\gps\2015-06-13_saunderton.gpx");
-            //XmlReader reader = XmlReader.Create(@"C:\Users\Pablon\Documents\moje\gps\2014-08-13 bieg.gpx");
-            //XmlReader reader = XmlReader.Create(@"C:\Users\Pablon\Documents\2013_05_27 17_09_endomondo_eksport.gpx");
             LoadWorkoutDirectory();
 
         }
