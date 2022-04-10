@@ -33,7 +33,7 @@
             System.Windows.Forms.DataVisualization.Charting.Series series4 = new System.Windows.Forms.DataVisualization.Charting.Series();
             this.chart1 = new System.Windows.Forms.DataVisualization.Charting.Chart();
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
-            this.openFolderMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.selectFolderMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.intervalsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.graphDistanceMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.graphDurationMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -87,7 +87,7 @@
             // menuStrip1
             // 
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.openFolderMenuItem,
+            this.selectFolderMenuItem,
             this.intervalsMenuItem,
             this.graphDistanceMenuItem,
             this.graphDurationMenuItem,
@@ -103,11 +103,11 @@
             this.menuStrip1.Text = "menuStrip1";
             this.menuStrip1.ItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.menuStrip1_ItemClicked);
             // 
-            // openFolderMenuItem
+            // selectFolderMenuItem
             // 
-            this.openFolderMenuItem.Name = "openFolderMenuItem";
-            this.openFolderMenuItem.Size = new System.Drawing.Size(84, 20);
-            this.openFolderMenuItem.Text = "Open Folder";
+            this.selectFolderMenuItem.Name = "selectFolderMenuItem";
+            this.selectFolderMenuItem.Size = new System.Drawing.Size(84, 20);
+            this.selectFolderMenuItem.Text = "Select Folder";
             // 
             // intervalsMenuItem
             // 
@@ -359,7 +359,7 @@
         private System.Windows.Forms.ToolStripMenuItem speedUnitsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem mapZoomMenuItem;
         private System.Windows.Forms.ToolStripMenuItem mapUnZoomMenuItem;
-        private ToolStripMenuItem openFolderMenuItem;
+        private ToolStripMenuItem selectFolderMenuItem;
     }
 }
 
