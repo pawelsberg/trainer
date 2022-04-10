@@ -29,7 +29,14 @@ namespace Pawelsberg.Trainer
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            _workoutDirectory = new WorkoutDirectory(GetWorkoutDirectory());
+            string? workoutDirectory = GetWorkoutDirectoryFromConfigOrDialog();
+            if (workoutDirectory == null)
+            {
+                Application.Exit();
+                return;
+            }
+
+            _workoutDirectory = new WorkoutDirectory(workoutDirectory);
             Text = $"Trainer ({_workoutDirectory.Folder})";
             _workoutDirectory.Load();
             //XmlReader reader = XmlReader.Create(@"C:\Users\Pablon\Documents\2013-05-18_rolki3.gpx");
@@ -40,30 +47,31 @@ namespace Pawelsberg.Trainer
 
         }
 
-        private DialogResult ShowSelectWorkoutDirectory()
+        private DialogResult GetWorkoutDirectoryFromDialog()
         {
             FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
             folderBrowserDialog.Description = "Please select folder with your GPS workout files (*.gpx, *.tcx)";
             DialogResult result = folderBrowserDialog.ShowDialog();
+
             if (result == DialogResult.OK)
             {
+                if (!Directory.Exists(folderBrowserDialog.SelectedPath))
+                    throw new Exception($"Directory {folderBrowserDialog.SelectedPath} doesn't exist.");
                 Properties.Settings.Default.WorkoutDirectory = folderBrowserDialog.SelectedPath;
                 Properties.Settings.Default.Save();
-                Text = $"Trainer ({folderBrowserDialog.SelectedPath})";
+                return result;
             }
-            return result;
+            else
+                return result;
         }
 
-        private string GetWorkoutDirectory()
+        private string? GetWorkoutDirectoryFromConfigOrDialog()
         {
             if (!Directory.Exists(Properties.Settings.Default.WorkoutDirectory))
-            {
-                DialogResult result = ShowSelectWorkoutDirectory();
-                if (result != DialogResult.OK)
-                    Application.Exit();
-            }
+                GetWorkoutDirectoryFromDialog();
+
             if (!Directory.Exists(Properties.Settings.Default.WorkoutDirectory))
-                Application.Exit();
+                return null;
             return Properties.Settings.Default.WorkoutDirectory;
         }
 
@@ -107,21 +115,27 @@ namespace Pawelsberg.Trainer
         {
             if (e.ClickedItem == graphDistanceMenuItem)
             {
-                _workout.GausianFilterCalcSpeed();
+                //_workout.GausianFilterCalcSpeed();
                 chart1.Series.Clear();
                 chart1.Series.Add(_workout.Name + " Speed");
-                chart1.Series[0].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Area;
+                chart1.Series[0].ChartType = SeriesChartType.Area;
 
                 if (speedUnitsMenuItem.Text == "[km/h]")
                     foreach (WorkoutPoint point in _workout.Points)
                         chart1.Series[0].Points.Add(new DataPoint(point.Distance, point.CalcSpeed * 3600d / 1000d) { Tag = point });
                 else
+                {   
                     foreach (WorkoutPoint point in _workout.Points)
-                        chart1.Series[0].Points.Add(new DataPoint(point.Distance, 1000d / 60d / point.CalcSpeed){Tag = point});
+                    {
+                        double pointVal = 1000d / 60d / point.CalcSpeed;
+                        chart1.Series[0].Points.Add(new DataPoint(point.Distance, double.IsInfinity(pointVal) || pointVal > 12d  ? 12d : pointVal) { Tag = point });
+                    }
+
+                }
 
                 chart1.Series.Add(_workout.Name + " Alt");
-                chart1.Series[1].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
-                chart1.Series[1].YAxisType = System.Windows.Forms.DataVisualization.Charting.AxisType.Secondary;
+                chart1.Series[1].ChartType = SeriesChartType.Line;
+                chart1.Series[1].YAxisType = AxisType.Secondary;
                 foreach (WorkoutPoint point in _workout.Points)
                     chart1.Series[1].Points.AddXY(point.Distance, point.Ele);
 
@@ -136,21 +150,26 @@ namespace Pawelsberg.Trainer
             }
             if (e.ClickedItem == graphDurationMenuItem)
             {
-                _workout.GausianFilterCalcSpeed();
+                //_workout.GausianFilterCalcSpeed();
                 chart1.Series.Clear();
                 chart1.Series.Add(_workout.Name + " Speed");
-                chart1.Series[0].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Area;
+                chart1.Series[0].ChartType = SeriesChartType.Area;
 
                 if (speedUnitsMenuItem.Text == "[km/h]")
                     foreach (WorkoutPoint point in _workout.Points)
                         chart1.Series[0].Points[chart1.Series[0].Points.AddXY(new DateTime().Add(point.Time.Subtract(_workout.Points[0].Time)), point.CalcSpeed * 3600d / 1000d)].Tag=point;
                 else
+                {
                     foreach (WorkoutPoint point in _workout.Points)
-                        chart1.Series[0].Points[chart1.Series[0].Points.AddXY(new DateTime().Add(point.Time.Subtract(_workout.Points[0].Time)), 1000d / 60d / point.CalcSpeed)].Tag = point;
+                    {
+                        double pointVal = 1000d / 60d / point.CalcSpeed;
+                        chart1.Series[0].Points[chart1.Series[0].Points.AddXY(new DateTime().Add(point.Time.Subtract(_workout.Points[0].Time)), double.IsInfinity(pointVal) || pointVal > 12d ? 12d : pointVal)].Tag = point;
+                    }
+                }
 
                 chart1.Series.Add(_workout.Name + " Alt");
-                chart1.Series[1].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
-                chart1.Series[1].YAxisType = System.Windows.Forms.DataVisualization.Charting.AxisType.Secondary;
+                chart1.Series[1].ChartType = SeriesChartType.Line;
+                chart1.Series[1].YAxisType = AxisType.Secondary;
                 foreach (WorkoutPoint point in _workout.Points)
                     chart1.Series[1].Points.AddXY(new DateTime().Add(point.Time.Subtract(_workout.Points[0].Time)), point.Ele);
 
@@ -169,7 +188,7 @@ namespace Pawelsberg.Trainer
             {
                 chart1.Series.Clear();
                 chart1.Series.Add(_workout.Name + " Time");
-                chart1.Series[0].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Column;
+                chart1.Series[0].ChartType = SeriesChartType.Column;
                 if (speedUnitsMenuItem.Text == "[km/h]")
                     foreach (WorkoutInterval interval in _workout.KmIntervals)
                         chart1.Series[0].Points.AddXY(interval.Speed.ToString("F2"), interval.Speed);
@@ -207,16 +226,15 @@ namespace Pawelsberg.Trainer
                 mapPictureBox.Image = (Image)_mapChart.Image.Clone();
                 _workout.Draw(mapPictureBox.Image, _mapChart, Color.Blue);
             }
-            if (e.ClickedItem == openFolderMenuItem)
+            if (e.ClickedItem == selectFolderMenuItem)
             {
-                DialogResult result = ShowSelectWorkoutDirectory();
-                if (result != DialogResult.OK)
-                    Application.Exit();
-                if (!Directory.Exists(Properties.Settings.Default.WorkoutDirectory))
-                    Application.Exit();
-                _workoutDirectory = new WorkoutDirectory(Properties.Settings.Default.WorkoutDirectory);
-                _workoutDirectory.Load();
-                LoadWorkoutDirectory();
+                DialogResult result = GetWorkoutDirectoryFromDialog();
+                if (result == DialogResult.OK)
+                {
+                    _workoutDirectory = new WorkoutDirectory(Properties.Settings.Default.WorkoutDirectory);
+                    _workoutDirectory.Load();
+                    LoadWorkoutDirectory();
+                }
             }
         }
 
@@ -352,7 +370,7 @@ namespace Pawelsberg.Trainer
 
         private void mapPictureBox_MouseMove(object sender, MouseEventArgs e)
         {
-            if (_mouseDownPoint.HasValue && e.Button == System.Windows.Forms.MouseButtons.Left)
+            if (_mouseDownPoint.HasValue && e.Button == MouseButtons.Left)
             {
                 Point movement = Point.Subtract(_mouseDownPoint.Value, new Size(e.Location));
                 //Point prevAutoScrollPosition = panel1.AutoScrollPosition;
@@ -360,7 +378,7 @@ namespace Pawelsberg.Trainer
                 //Debugger.Log(0, string.Empty, string.Format("PrevAutoScrollPosition = {2} Movement = {0} AutoScrollPosition = {1}\n", movement,panel1.AutoScrollPosition,prevAutoScrollPosition));
                 //panel1.AutoScrollPosition = movement;
             }
-            if (e.Button == System.Windows.Forms.MouseButtons.None && false)
+            if (e.Button == MouseButtons.None && false)
             {
                 mapPictureBox.Image = (Image)_mapChart.Image.Clone();
                 _workout.Draw(mapPictureBox.Image, _mapChart, Color.Blue);
